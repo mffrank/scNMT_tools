@@ -1,9 +1,10 @@
 import pytest
 import os
 
-from scnmttools import *
-
-print(os.getcwd())
+# from scnmttools import *
+dir_path = os.path.dirname(os.path.realpath(__file__))
+os.chdir(dir_path)
+# print(os.getcwd())
 
 filenames = [
     'E6.5_Plate3_G6.tsv.gz',
@@ -14,4 +15,4 @@ filenames = [
 
 def test_data_avail():
     for f in filenames:
-        assert os.path.exists(f), 'Example data %s not found'%f
+        assert os.path.exists(os.path.join('data/', f)), 'Example data %s not found'%f
