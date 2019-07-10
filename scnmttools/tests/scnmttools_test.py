@@ -25,3 +25,10 @@ def test_read_tsv():
 
 def test_make_genomic_index():
     assert np.all(io.make_genomic_index([1,1,2,2,4,6]) == np.array([0, 0, 1, 1, 2, 3]))
+
+def test_collapse_strands():
+    met = io.read_tsv(os.path.join('data/', filenames[2]))
+    met_collapsed = io.collapse_strands(met)
+    assert met_collapsed.shape == (58, 4), 'Expected collapsed dimensions (58, 4) but got (%d,%d)'%met_collapsed.shape
+    assert met_collapsed.iloc[11,2] == 2, 'Expected 2 in position [11,2] but got %d'%met_collapsed.iloc[11,2]
+
