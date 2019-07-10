@@ -22,7 +22,7 @@ def read_tsv(filename, header=True):
                                'location':np.int64,
                                'met_reads':np.int32,
                                'nonmet_reads': np.int32})
-    return(met)
+    return met
 
 def collapse_strands(met):
     '''Add reads of neighboring genomic locations.
@@ -38,22 +38,32 @@ def collapse_strands(met):
     met.loc[neighbor_ind, 'nonmet_reads'] += met.loc[neighbor_ind + 1, 'nonmet_reads'].values
     met.drop(neighbor_ind+1, inplace=True)
     met.reset_index(inplace=True)
-    return(met)
+    return met
 
 
-def calculate_met_rate(met, binarize=True, collapse_strands=True):
+def calculate_met_rate(met, binarize=True, collapse_strands=True, drop_ambiguous=True):
     '''Adds a rate column to methylation table
 
     Parameters:
     met: pd.DataFrame with columns met_reads, unmet_reads
     binarize: boolean, whether to return a binary rate
+    collapse_strands: boolean, whether to sum reads from neighboring methylation sites
+    drop_ambiguous: boolean, whether to drop sites with 0.5 methylation rate
 
     Returns:
     pd.DataFrame with added rate column
     '''
     if collapse_strands:
+        met = collapse_strands(met)
 
+    # Calculate the rate
     met['met_rate'] = met['met_reads'] / (met['met_reads'] + met['nonmet_reads'])
+    if drop_ambiguous:
+        met = met.loc[met['met_rate'] != 0.5]
+        met.reset_index(inplace=True)
+    if binarize:
+        met['met_rate'] = (met['met_rate'] > 0.5) * 1
+    return met
 
 def make_genomic_index(location):
     '''Generate an index for a numpy array of redundant genomic locations
@@ -65,4 +75,4 @@ def make_genomic_index(location):
     '''
     d = np.diff(location)
     i = np.insert(np.cumsum(d != 0), 0, 0)
-    return(i)
+    return i
