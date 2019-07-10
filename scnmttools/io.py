@@ -47,14 +47,19 @@ def collapse_strands(met):
     return met
 
 
-def calculate_met_rate(met, binarize=True, collapse_strands=True, drop_ambiguous=True):
+def calculate_met_rate(
+        met, binarize=True, collapse_strands=True, drop_ambiguous=True, 
+        drop_rate_columns=False):
     '''Adds a rate column to methylation table
 
     Parameters:
     met: pd.DataFrame with columns met_reads, unmet_reads
     binarize: boolean, whether to return a binary rate
-    collapse_strands: boolean, whether to sum reads from neighboring methylation sites
+    collapse_strands: boolean, whether to sum reads from neighboring 
+                      methylation sites
     drop_ambiguous: boolean, whether to drop sites with 0.5 methylation rate
+    drop_rate_columns: boolean, whether columns met_reads and nonmet_reads 
+                       should be removed
 
     Returns:
     pd.DataFrame with added rate column
@@ -66,9 +71,11 @@ def calculate_met_rate(met, binarize=True, collapse_strands=True, drop_ambiguous
     met['met_rate'] = met['met_reads'] / (met['met_reads'] + met['nonmet_reads'])
     if drop_ambiguous:
         met = met.loc[met['met_rate'] != 0.5]
-        met.reset_index(inplace=True)
+        met.reset_index(inplace=True, drop=True)
     if binarize:
         met['met_rate'] = (met['met_rate'] > 0.5) * 1
+    if drop_rate_columns:
+        met.drop(['met_reads', 'nonmet_reads'], inplace=True, axis=1)
     return met
 
 def make_genomic_index(location):

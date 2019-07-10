@@ -32,3 +32,11 @@ def test_collapse_strands():
     assert met_collapsed.shape == (58, 4), 'Expected collapsed dimensions (58, 4) but got (%d,%d)'%met_collapsed.shape
     assert met_collapsed.iloc[11,2] == 2, 'Expected 2 in position [11,2] but got %d'%met_collapsed.iloc[11,2]
 
+def test_make_deepcpg_format():
+    met = io.read_tsv(os.path.join('data/', filenames[2]))
+    deepcpg_format = io.calculate_met_rate(
+        met, binarize=True, collapse_strands=False, drop_ambiguous=True, 
+        drop_rate_columns=True)
+    assert deepcpg_format.shape[1] == 3, 'Expected 3 columns in deepcpg format, but got %d' % deepcpg_format.shape[1]
+    assert deepcpg_format.shape[0] == 62, 'Expected 62 columns to pass filtering, but got %d' % deepcpg_format.shape[0]
+
