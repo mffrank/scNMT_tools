@@ -13,16 +13,47 @@ def read_tsv(filename, header=True):
     pd.DataFrame
     '''
     met = pd.read_csv(filename,
-                      delimiter = '\t',
-                      header = None,
+                      delimiter='\t',
+                      header=None,
                       skiprows= 1 if header else 0, # Skip the header row
                       usecols = [0,1,2,3],
-                      names=['chr', 'location','met', 'unmet'],
+                      names=['chr', 'location','met_reads', 'nonmet_reads'],
                       dtype = {'chr':'category',
                                'location':np.int64,
-                               'metfrac':np.int32,
-                               'unmet': np.int32})
+                               'met_reads':np.int32,
+                               'nonmet_reads': np.int32})
     return(met)
+
+def collapse_strands(met):
+    '''Add reads of neighboring genomic locations.
+    Caution: This function makes the assumption that both sister chromosomes in
+    the cell are always methylated the same. It is recommended to use this if you
+    are not interested in allele specific analyses.'''
+
+    locations = met.location.values
+    # Find locations that have a neighbor
+    neighbor_ind = np.where(np.diff(locations) == 1)[0]
+    # Add the reads to the first of the two neighbors
+    met.loc[neighbor_ind, 'met_reads'] += met.loc[neighbor_ind + 1, 'met_reads'].values
+    met.loc[neighbor_ind, 'nonmet_reads'] += met.loc[neighbor_ind + 1, 'nonmet_reads'].values
+    met.drop(neighbor_ind+1, inplace=True)
+    met.reset_index(inplace=True)
+    return(met)
+
+
+def calculate_met_rate(met, binarize=True, collapse_strands=True):
+    '''Adds a rate column to methylation table
+
+    Parameters:
+    met: pd.DataFrame with columns met_reads, unmet_reads
+    binarize: boolean, whether to return a binary rate
+
+    Returns:
+    pd.DataFrame with added rate column
+    '''
+    if collapse_strands:
+
+    met['met_rate'] = met['met_reads'] / (met['met_reads'] + met['nonmet_reads'])
 
 def make_genomic_index(location):
     '''Generate an index for a numpy array of redundant genomic locations
