@@ -25,19 +25,25 @@ def read_tsv(filename, header=True):
     return met
 
 def collapse_strands(met):
-    '''Add reads of neighboring genomic locations.
+    '''Sum reads of neighboring genomic locations.
     Caution: This function makes the assumption that both sister chromosomes in
     the cell are always methylated the same. It is recommended to use this if you
     are not interested in allele specific analyses.'''
 
-    locations = met.location.values
-    # Find locations that have a neighbor
-    neighbor_ind = np.where(np.diff(locations) == 1)[0]
-    # Add the reads to the first of the two neighbors
-    met.loc[neighbor_ind, 'met_reads'] += met.loc[neighbor_ind + 1, 'met_reads'].values
-    met.loc[neighbor_ind, 'nonmet_reads'] += met.loc[neighbor_ind + 1, 'nonmet_reads'].values
-    met.drop(neighbor_ind+1, inplace=True)
-    met.reset_index(inplace=True)
+    def collapse(met):
+        locations = met.location.values
+        # Find locations that have a neighbor
+        neighbor_ind = met.index[np.append(np.diff(locations) == 1, False)]
+        # Add the reads to the first of the two neighbors
+        met.loc[neighbor_ind, 'met_reads'] += met.loc[neighbor_ind + 1, 'met_reads'].values
+        met.loc[neighbor_ind, 'nonmet_reads'] += met.loc[neighbor_ind + 1, 'nonmet_reads'].values
+        met.drop(neighbor_ind+1, inplace = True)
+        # met.reset_index(inplace=True)
+        return met
+
+    met_grouped = met.groupby('chr')
+    met = met_grouped.apply(lambda x: collapse(x))
+    met.reset_index(drop = True, inplace = True)
     return met
 
 
