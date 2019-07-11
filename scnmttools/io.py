@@ -51,7 +51,7 @@ def collapse_strands(met):
 
 def calculate_met_rate(
         met, binarize=True, enable_collapse_strands=True, drop_ambiguous=True, 
-        drop_rate_columns=False):
+        drop_reads_columns=False):
     '''Adds a rate column to methylation table
 
     Parameters:
@@ -60,7 +60,7 @@ def calculate_met_rate(
     enable_collapse_strands: boolean, whether to sum reads from neighboring 
                       methylation sites
     drop_ambiguous: boolean, whether to drop sites with 0.5 methylation rate
-    drop_rate_columns: boolean, whether columns met_reads and nonmet_reads 
+    drop_reads_columns: boolean, whether columns met_reads and nonmet_reads 
                        should be removed
 
     Returns:
@@ -76,7 +76,7 @@ def calculate_met_rate(
         met.reset_index(inplace=True, drop=True)
     if binarize:
         met['met_rate'] = (met['met_rate'] > 0.5) * 1
-    if drop_rate_columns:
+    if drop_reads_columns:
         met.drop(['met_reads', 'nonmet_reads'], inplace=True, axis=1)
     return met
 
@@ -92,7 +92,7 @@ def to_bed_graph_format(met):
     pd.DataFrame with columns chr, location, locationEnd, met_rate
     '''
 
-    met = calculate_met_rate(met, enable_collapse_strands=False, drop_rate_columns=True)
+    met = calculate_met_rate(met, enable_collapse_strands=False, drop_reads_columns=True)
     met['locationEnd'] = met['location'] + 1 # Add column for range end
     met = met[['chr','location','locationEnd','met_rate']] # Correct col order
     return met

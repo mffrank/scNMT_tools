@@ -37,7 +37,7 @@ def test_to_deepcpg_format():
     met = io.read_tsv(os.path.join('data/', filenames[2]))
     deepcpg_format = io.calculate_met_rate(
         met, binarize=True, enable_collapse_strands=False, drop_ambiguous=True, 
-        drop_rate_columns=True)
+        drop_reads_columns=True)
     assert deepcpg_format.shape[1] == 3, 'Expected 3 columns in deepcpg format, but got %d' % deepcpg_format.shape[1]
     assert deepcpg_format.shape[0] == 62, 'Expected 62 columns to pass filtering, but got %d' % deepcpg_format.shape[0]
 
