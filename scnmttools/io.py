@@ -139,6 +139,24 @@ def read_data(
         enable_collapse_strands=True,
         drop_ambiguous=True,
         outfile=None):
+    ''' Reads all specified files and converts them to a sparse matrix in anndata format.
+
+    Parameters:
+    files: List of files to containing the individual cell assays.
+    per_chromosome: boolean, whether to output an individual anndata file per_chromosome.
+    Chromosomes are automatically inferred from the first file or can be specified in chromosomes.
+    chromosomes: list of strings, which chromosomes to generate an output for.
+    binarize: boolean, whether to return a binary methylation rate
+    enable_collapse_strands: boolean, whether to sum reads from neighboring
+    methylation sites
+    drop_ambiguous: boolean, whether to drop sites with 0.5 methylation rate
+    drop_rate_columns: boolean, whether columns met_reads and nonmet_reads
+    should be removed
+    outfile: str, Prefix name of output file
+
+    Returns:
+    pd.DataFrame with added rate column
+    '''
     # Get cellnames from input files
     cellnames = [re.sub('\\.csv|\\.txt|\\.tsv|\\.gz','',os.path.basename(file)) for file in files]
 
@@ -179,11 +197,12 @@ def read_data(
         a = anndata.AnnData(X = metmat, obs = obs, var = var, dtype = np.int32)
         if outfile is not None:
             print('Writing h5ad file')
-            a.write(outfile)
+            a.write(re.sub('$', '_chr_%s.h5ad'%chromosome, re.sub('.h5ad','', outfile)))
             a.file.close()
-        return(a)
 
 def read_cells(files, chromosome = None, header = True, verbose = True):
+    '''Convenience function around read_tsv to read multiple tsv files
+    and optionally filter for a chromosome.'''
     allmet = []
     if verbose: print('Reading files...')
     for cell in files:
@@ -200,3 +219,4 @@ def read_cells(files, chromosome = None, header = True, verbose = True):
             print('Could not read file %s. Skipping...'%cell)
     return allmet
 
+re.sub()
