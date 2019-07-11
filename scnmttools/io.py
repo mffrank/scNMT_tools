@@ -3,6 +3,7 @@ import numpy as np
 import re
 from scipy import sparse
 import anndata
+import gzip
 
 def read_tsv(filename, header=True):
     '''Reads a standardized tsv file (Must have the following columns:
@@ -111,9 +112,12 @@ def write_bed_graph(met, filename, convert=True):
     '''
     if convert:
         met = to_bed_graph_format(met)
-    with open(filename, 'w') as f:
+    '''Since we need to write one file manually, we also need to compress by
+    ourselves and cant use the compression offered by to_csv'''
+    with gzip.open(filename, 'wt') if filename.endswith('gz') \
+            else open(filename,'wt') as f:
         f.write('track type=bedGraph\n')
-        met.to_csv(f, sep='\t', index=False, header=False)
+        met.to_csv(f, sep='\t', index=False, header=False, compression=None)
 
 def make_genomic_index(location):
     '''Generate an index for a numpy array of redundant genomic locations

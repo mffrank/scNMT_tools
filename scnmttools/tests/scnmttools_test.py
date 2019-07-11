@@ -2,6 +2,7 @@ import pytest
 import os
 import numpy as np
 import pandas as pd
+import gzip
 
 from scnmttools import io
 
@@ -65,14 +66,30 @@ def validate_bed_graph_file(filename, expected_nrow):
 def test_write_bed_graph(tmpdir):
     met = io.read_tsv(os.path.join('data/', filenames[2]))
     nrow_before = met.shape[0]
-    outfile = os.path.join(tmpdir, filenames[2]+'1.bedGraph')
 
+    outfile = os.path.join(tmpdir, filenames[2]+'1.bedGraph')
     assert not os.path.exists(outfile), 'Temp output file already exists before test at %s' % outfile
     io.write_bed_graph(met, outfile, convert=True)
     validate_bed_graph_file(outfile, nrow_before)
+    # Make sure it wasn't gzip compressed
+    try:
+        with gzip.open(outfile) as f:
+            f.read()
+        assert False, 'Output file should NOT be gzip compressed, but seems to have been.'
+    except OSError:
+        pass
+
+    '''Now testing with compression (should infer gzip from filename)'''
+    outfile = os.path.join(tmpdir, filenames[2]+'1.bedGraph.gz')
+    assert not os.path.exists(outfile), 'Temp output file already exists before test at %s' % outfile
+    io.write_bed_graph(met, outfile, convert=True)
+    try:
+        with gzip.open(outfile) as f:
+            f.read()
+    except OSError:
+        assert False, 'Output file should be gzip compressed, but seems to not be that way.'
 
     '''Now testing with manual conversion'''
-
     outfile = os.path.join(tmpdir, filenames[2]+'2.bedGraph')
     assert not os.path.exists(outfile), 'Temp output file already exists before test at %s' % outfile
     met = io.to_bed_graph_format(met)
