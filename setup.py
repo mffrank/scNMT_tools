@@ -7,4 +7,10 @@ setup(name='scnmttools',
       author='Max Frank, Rene Snajder',
       license='MIT',
       packages=['scnmttools'],
+      install_requires= [
+          'numpy',
+          'pandas',
+          'scipy',
+          'anndata'
+      ],
       zip_safe=False)
