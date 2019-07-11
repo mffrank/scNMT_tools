@@ -1,6 +1,7 @@
 import pytest
 import os
 import numpy as np
+import pandas as pd
 
 from scnmttools import io
 
@@ -43,7 +44,37 @@ def test_to_deepcpg_format():
 def test_to_bed_graph_format():
     met = io.read_tsv(os.path.join('data/', filenames[2]))
     nrow_before = met.shape[0]
-    bed_graph_format = io.to_bed_graph_format(met)
-    assert bed_graph_format.shape[1] == 4, 'Expected bed graph format to have 4 columns, but got %d' %  bed_graph_format.shape[1]
-    assert bed_graph_format.shape[0] == nrow_before, \
-        'Expected number of rows to be unchaged, but changed from %d to %d' % (nrow_before , bed_graph_format.shape[0])
+    bedgraph = io.to_bed_graph_format(met)
+    assert bedgraph.shape[1] == 4, 'Expected bed graph format to have 4 columns, but got %d' %  bedgraph.shape[1]
+    assert bedgraph.shape[0] == nrow_before, \
+        'Expected number of rows to be unchaged, but changed from %d to %d' % (nrow_before , bedgraph.shape[0])
+
+
+def validate_bed_graph_file(filename, expected_nrow):
+    assert os.path.exists(filename), 'Bedgraph file does not exist'
+    with open(filename, 'r') as f:
+        header = f.readline()
+        assert header.startswith('track type=bedGraph'), 'Bedgraph file does not have appropriate header'
+        bedgraph = pd.read_csv(filename, delimiter='\t', header=None, skiprows=1)
+        assert bedgraph.shape[1] == 4, 'Expected bed graph format to have 4 columns, but got %d' %  bedgraph.shape[1]
+        assert bedgraph.shape[0] == expected_nrow, \
+            'Expected number of rows to be unchaged, but changed from %d to %d' % (expected_nrow, bedgraph.shape[0])
+        assert np.all(bedgraph.columns[1] == bedgraph.columns[2]-1), 'Locations in bedgraph format are wrong. Can only be 1 apart.'
+
+
+def test_write_bed_graph(tmpdir):
+    met = io.read_tsv(os.path.join('data/', filenames[2]))
+    nrow_before = met.shape[0]
+    outfile = os.path.join(tmpdir, filenames[2]+'1.bedGraph')
+
+    assert not os.path.exists(outfile), 'Temp output file already exists before test at %s' % outfile
+    io.write_bed_graph(met, outfile, convert=True)
+    validate_bed_graph_file(outfile, nrow_before)
+
+    '''Now testing with manual conversion'''
+
+    outfile = os.path.join(tmpdir, filenames[2]+'2.bedGraph')
+    assert not os.path.exists(outfile), 'Temp output file already exists before test at %s' % outfile
+    met = io.to_bed_graph_format(met)
+    io.write_bed_graph(met, outfile, convert=False)
+    validate_bed_graph_file(outfile, nrow_before)

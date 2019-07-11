@@ -83,7 +83,14 @@ def calculate_met_rate(
 def to_bed_graph_format(met):
     '''Converts table as returned by read_tsv into bedGraph track format. Note 
     that in order for the file format to be read correctly, it needs a custom
-    header line that is written by write_bed_graph'''
+    header line that is written by write_bed_graph
+
+    Parameters:
+    met: pd.DataFrame with columns met_reads, unmet_reads
+
+    Returns:
+    pd.DataFrame with columns chr, location, locationEnd, met_rate
+    '''
 
     met = calculate_met_rate(met, enable_collapse_strands=False, drop_rate_columns=True)
     met['locationEnd'] = met['location'] + 1 # Add column for range end
@@ -91,10 +98,21 @@ def to_bed_graph_format(met):
     return met
 
 def write_bed_graph(met, filename, convert=True):
+    '''Writes a bedGraph format file
+    
+    Parameters:
+    met: pd.DataFrame either in the format returned by read_tsv or already
+        in bedGraph format
+    filename: the output file path
+    convert: If True, the dataframe is assumed to be in the format returned
+             by read_tsv and is first converted to bedGraph format. If False,
+             the input is already assumed to be in bedGraph format. 
+             Default: True
+    '''
     if convert:
         met = to_bed_graph_format(met)
     with open(filename, 'w') as f:
-        f.write('track type=bedGraph')
+        f.write('track type=bedGraph\n')
         met.to_csv(f, sep='\t', index=False, header=False)
 
 def make_genomic_index(location):
