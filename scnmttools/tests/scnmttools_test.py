@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pandas as pd
 import gzip
+import re
 
 from scnmttools import io
 
@@ -95,3 +96,23 @@ def test_write_bed_graph(tmpdir):
     met = io.to_bed_graph_format(met)
     io.write_bed_graph(met, outfile, convert=False)
     validate_bed_graph_file(outfile, nrow_before)
+
+
+
+def validate_samtools_faidx_region_file(filename, expected_nrow):
+    assert os.path.exists(filename), 'Region file does not exist'
+    with open(filename, 'r') as f:
+        prog = re.compile('^[^:]+:\\d+-\\d+$')
+        for i in range(expected_nrow):
+            line = f.readline()
+            assert prog.match(line), 'Invalid format in %s' % line
+
+
+def test_samtools_faidx_region(tmpdir):
+    met = io.read_tsv(os.path.join('data/', filenames[2]))
+    nrow_before = met.shape[0]
+
+    outfile = os.path.join(tmpdir, filenames[2]+'_region.txt')
+    assert not os.path.exists(outfile), 'Temp output file already exists before test at %s' % outfile
+    io.write_samtools_faidx_region_file(met, outfile)
+    validate_samtools_faidx_region_file(outfile, nrow_before)

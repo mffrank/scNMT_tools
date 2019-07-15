@@ -119,6 +119,22 @@ def write_bed_graph(met, filename, convert=True):
         f.write('track type=bedGraph\n')
         met.to_csv(f, sep='\t', index=False, header=False, compression=None)
 
+def write_samtools_faidx_region_file(met, filename):
+    '''Writes the file format expected by samtools faidx as a region file.
+    I.e. when running something like 
+        samtools faidx <somefastafile.fa> -r <regionfile.txt>
+    
+    The format looks as follows:
+        <chr>:<startloc>-<endloc>
+
+    Parameters:
+    met: pd.DataFrame either in the format returned by read_tsv
+    filename: the output file path
+    '''
+    with open(filename, 'wt') as f:
+        for i,r in met.iterrows():
+            f.write('%s:%d-%d\n' % (r['chr'],r['location'],r['location']))
+
 def make_genomic_index(location):
     '''Generate an index for a numpy array of redundant genomic locations
     Parameters:
@@ -219,4 +235,3 @@ def read_cells(files, chromosome = None, header = True, verbose = True):
             print('Could not read file %s. Skipping...'%cell)
     return allmet
 
-re.sub()
