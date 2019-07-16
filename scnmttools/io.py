@@ -132,8 +132,11 @@ def write_samtools_faidx_region_file(met, filename):
     filename: the output file path
     '''
     with open(filename, 'wt') as f:
-        for i,r in met.iterrows():
-            f.write('%s:%d-%d\n' % (r['chr'],r['location'],r['location']))
+        chr_j = met.columns.get_loc('chr')+1
+        loc_j = met.columns.get_loc('location')+1
+        # Using itertuples instead of iterrows, because iterrows is slow as f*ck
+        for r in met.itertuples():
+            f.write('%s:%d-%d\n' % (r[chr_j],r[loc_j],r[loc_j]))
 
 def make_genomic_index(location):
     '''Generate an index for a numpy array of redundant genomic locations
