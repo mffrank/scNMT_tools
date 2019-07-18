@@ -119,7 +119,7 @@ def write_bed_graph(met, filename, convert=True):
         f.write('track type=bedGraph\n')
         met.to_csv(f, sep='\t', index=False, header=False, compression=None)
 
-def write_samtools_faidx_region_file(met, filename):
+def write_samtools_faidx_region_file(met, filename, before=0, after=0):
     '''Writes the file format expected by samtools faidx as a region file.
     I.e. when running something like 
         samtools faidx <somefastafile.fa> -r <regionfile.txt>
@@ -130,13 +130,15 @@ def write_samtools_faidx_region_file(met, filename):
     Parameters:
     met: pd.DataFrame either in the format returned by read_tsv
     filename: the output file path
+    before: subtract this from the location to get the startloc (default:0)
+    after: add this to the location to get the endloc (default:0)
     '''
     with open(filename, 'wt') as f:
         chr_j = met.columns.get_loc('chr')+1
         loc_j = met.columns.get_loc('location')+1
         # Using itertuples instead of iterrows, because iterrows is slow as f*ck
         for r in met.itertuples():
-            f.write('%s:%d-%d\n' % (r[chr_j],r[loc_j],r[loc_j]))
+            f.write('%s:%d-%d\n' % (r[chr_j],r[loc_j]-before,r[loc_j]+after))
 
 def make_genomic_index(location):
     '''Generate an index for a numpy array of redundant genomic locations
@@ -234,7 +236,7 @@ def read_cells(files, chromosome = None, header = True, verbose = True):
                                   ": Coverage of Chromosome %s: "%chromosome +
                                   str(met.shape[0]))
             allmet.append(met)
-        except:
-            print('Could not read file %s. Skipping...'%cell)
+        except Exception as e:
+            print('Could not read file %s. Skipping... (Exception was %s)'%(cell, e))
     return allmet
 
