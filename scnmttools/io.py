@@ -4,6 +4,7 @@ import re
 from scipy import sparse
 import anndata
 import gzip
+import os
 
 def read_tsv(filename, header=True):
     '''Reads a standardized tsv file (Must have the following columns:
@@ -49,10 +50,21 @@ def collapse_strands(met):
     met.reset_index(drop = True, inplace = True)
     return met
 
+def sum_duplicates(met):
+    ''' Sums reads of sites with identical genomic locations. '''
+    # Translate chr to factors because it makes grouping SO much faster
+    factors = pd.factorize(met['chr'])
+    met['chr'] = factors[0]
+    # Sum up duplicates
+    met = met.groupby(['chr','location']).sum()
+    met = met.reset_index()
+    # Bring the original chromosome names back
+    met['chr'] = met['chr'].map(lambda x: factors[1][x])
+    return met
 
 def calculate_met_rate(
         met, binarize=True, enable_collapse_strands=True, drop_ambiguous=True, 
-        drop_reads_columns=False):
+        drop_reads_columns=False, enable_sum_duplicates=False):
     '''Adds a rate column to methylation table
 
     Parameters:
@@ -63,12 +75,16 @@ def calculate_met_rate(
     drop_ambiguous: boolean, whether to drop sites with 0.5 methylation rate
     drop_reads_columns: boolean, whether columns met_reads and nonmet_reads 
                        should be removed
+    enable_sum_duplicates: boolean, whether to sum reads from identical methylation sites
 
     Returns:
     pd.DataFrame with added rate column
     '''
     if enable_collapse_strands:
         met = collapse_strands(met)
+
+    if enable_sum_duplicates:
+        met = sum_duplicates(met)
 
     # Calculate the rate
     met['met_rate'] = met['met_reads'] / (met['met_reads'] + met['nonmet_reads'])
@@ -93,7 +109,8 @@ def to_bed_graph_format(met):
     pd.DataFrame with columns chr, location, locationEnd, met_rate
     '''
 
-    met = calculate_met_rate(met, enable_collapse_strands=False, drop_reads_columns=True)
+    met = calculate_met_rate(met, enable_collapse_strands=False, drop_reads_columns=True, 
+        enable_sum_duplicates=True)
     met['locationEnd'] = met['location'] + 1 # Add column for range end
     met = met[['chr','location','locationEnd','met_rate']] # Correct col order
     return met
@@ -159,7 +176,8 @@ def read_data(
         binarize=True,
         enable_collapse_strands=True,
         drop_ambiguous=True,
-        outfile=None):
+        outfile=None,
+        verbose=True):
     ''' Reads all specified files and converts them to a sparse matrix in anndata format.
 
     Parameters:
@@ -174,6 +192,7 @@ def read_data(
     drop_rate_columns: boolean, whether columns met_reads and nonmet_reads
     should be removed
     outfile: str, Prefix name of output file
+    verbose: boolean, whether verbose log output should be printed
 
     Returns:
     pd.DataFrame with added rate column
@@ -195,9 +214,9 @@ def read_data(
     for chromosome in chromosomes:
         allmet = read_cells(files, chromosome)
         allmet = [calculate_met_rate(met,
-                                    binarize=binarize,
-                                    enable_collapse_strands=enable_collapse_strands,
-                                    drop_ambiguous=drop_ambiguous) for met in allmet]
+                                binarize=binarize,
+                                enable_collapse_strands=enable_collapse_strands,
+                                drop_ambiguous=drop_ambiguous) for met in allmet]
         if verbose: print('Concatenating...')
         allmet = pd.concat(allmet, keys = cellnames, copy = False)
         allmet.sort_values(['chr', 'location'], inplace=True)
@@ -220,6 +239,8 @@ def read_data(
             print('Writing h5ad file')
             a.write(re.sub('$', '_chr_%s.h5ad'%chromosome, re.sub('.h5ad','', outfile)))
             a.file.close()
+        if not per_chromosome:
+           return a
 
 def read_cells(files, chromosome = None, header = True, verbose = True):
     '''Convenience function around read_tsv to read multiple tsv files
