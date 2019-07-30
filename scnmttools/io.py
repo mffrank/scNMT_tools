@@ -237,7 +237,11 @@ def read_data(
         a = anndata.AnnData(X = metmat, obs = obs, var = var, dtype = np.int32)
         if outfile is not None:
             print('Writing h5ad file')
-            a.write(re.sub('$', '_chr_%s.h5ad'%chromosome, re.sub('.h5ad','', outfile)))
+            if chromosome is not None:
+                chr_outfile = re.sub('$', '_chr_%s.h5ad'%chromosome, re.sub('.h5ad','', outfile))
+            else:
+                chr_outfile = outfile
+            a.write(chr_outfile)
             a.file.close()
         if not per_chromosome:
            return a
